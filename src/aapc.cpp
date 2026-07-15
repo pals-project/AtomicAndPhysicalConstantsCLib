@@ -10,6 +10,7 @@
 
 #include "aapc/aapc.h"
 
+#include <cctype>
 #include <cmath>
 #include <regex>
 #include <stdexcept>

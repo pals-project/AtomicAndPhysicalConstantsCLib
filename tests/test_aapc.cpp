@@ -4,6 +4,7 @@
 // (CODATA 2022, v0.9.0) so a mismatch means the C++ mirror has drifted from the
 // Julia source of truth. No external test framework — a tiny CHECK harness.
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <stdexcept>
