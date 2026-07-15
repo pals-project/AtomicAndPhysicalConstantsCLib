@@ -2,12 +2,12 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 //
 // Produced by codegen/generate.jl from AtomicAndPhysicalConstants.jl
-// (CODATA 2022, AAPC v0.9.0). Regenerate with:
+// (CODATA 2022, APC v0.9.0). Regenerate with:
 //     julia --project=codegen codegen/generate.jl
 // ─────────────────────────────────────────────────────────────────────────────
 #pragma once
 
-namespace aapc {
+namespace apc {
 
 // CODATA release year that these values are drawn from.
 constexpr int RELEASE_YEAR = 2022;
@@ -53,4 +53,4 @@ constexpr double M_PROTON = 9.382720894300001e8;
 constexpr double R_ELECTRON = 2.8179403205e-15;
 constexpr double R_PROTON = 1.5346982640795807e-18;
 
-}  // namespace aapc
+}  // namespace apc

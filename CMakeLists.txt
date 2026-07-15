@@ -6,22 +6,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# The library: hand-written logic (src/aapc.cpp) over generated data headers
-# (include/aapc/*.generated.h, produced by codegen/generate.jl).
-add_library(aapc STATIC src/aapc.cpp)
-target_include_directories(aapc PUBLIC
+# The library: hand-written logic (src/apc.cpp) over generated data headers
+# (include/apc/*.generated.h, produced by codegen/generate.jl).
+add_library(apc STATIC src/apc.cpp)
+target_include_directories(apc PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 # A shared build is handy for FFI consumers (e.g. Julia).
-add_library(aapc_shared SHARED src/aapc.cpp)
-set_target_properties(aapc_shared PROPERTIES OUTPUT_NAME aapc)
-target_include_directories(aapc_shared PUBLIC
+add_library(apc_shared SHARED src/apc.cpp)
+set_target_properties(apc_shared PROPERTIES OUTPUT_NAME apc)
+target_include_directories(apc_shared PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-option(AAPC_BUILD_TESTS "Build AtomicAndPhysicalConstantsCLib tests" ON)
-if(AAPC_BUILD_TESTS)
+option(APC_BUILD_TESTS "Build AtomicAndPhysicalConstantsCLib tests" ON)
+if(APC_BUILD_TESTS)
   enable_testing()
-  add_executable(test_aapc tests/test_aapc.cpp)
-  target_link_libraries(test_aapc PRIVATE aapc)
-  add_test(NAME test_aapc COMMAND test_aapc)
+  add_executable(test_apc tests/test_apc.cpp)
+  target_link_libraries(test_apc PRIVATE apc)
+  add_test(NAME test_apc COMMAND test_apc)
 endif()

@@ -10,7 +10,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "aapc/aapc.h"
+#include "apc/apc.h"
 
 static int g_failures = 0;
 static int g_checks = 0;
@@ -34,7 +34,7 @@ static void check_true(const char* what, bool cond) {
 
 static bool throws(const std::string& name) {
   try {
-    aapc::species(name);
+    apc::species(name);
     return false;
   } catch (const std::invalid_argument&) {
     return true;
@@ -42,9 +42,9 @@ static bool throws(const std::string& name) {
 }
 
 int main() {
-  using namespace aapc;
+  using namespace apc;
 
-  // --- Constants mirrored from AAPC ---
+  // --- Constants mirrored from APC ---
   check_close("RELEASE_YEAR", RELEASE_YEAR, 2022);
   check_close("C_LIGHT", C_LIGHT, 2.99792458e8);
   check_close("M_ELECTRON", M_ELECTRON, 510998.95069000003);
@@ -103,7 +103,7 @@ int main() {
   check_true("null isnull", isnullspecies(species("")));
   check_true("null-name isnull", isnullspecies(species("Null")));
 
-  // --- Error cases (mirror AAPC) ---
+  // --- Error cases (mirror APC) ---
   check_true("triton throws (M_TRITON undefined upstream)", throws("triton"));
   check_true("unknown throws", throws("nonsense"));
   check_true("bad charge throws", throws("H+-"));

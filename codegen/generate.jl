@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 #
-# AAPC-codegen
+# APC-codegen
 # ============
 # Emit C++ source that mirrors the *data* of AtomicAndPhysicalConstants.jl
 # (https://github.com/bmad-sim/AtomicAndPhysicalConstants.jl).
@@ -9,12 +9,12 @@
 # constants and particle/isotope data in the Bmad / SciBmad / PALS ecosystem.
 # This script reads its live tables and writes two generated headers:
 #
-#   include/aapc/constants.generated.h      - scalar physical constants
-#   include/aapc/species_data.generated.h   - subatomic + atomic species tables
+#   include/apc/constants.generated.h      - scalar physical constants
+#   include/apc/species_data.generated.h   - subatomic + atomic species tables
 #
-# Only the *data* is generated. The *logic* that mirrors AAPC's Julia code
+# Only the *data* is generated. The *logic* that mirrors APC's Julia code
 # (the Species name parser from constructors.jl and the accessor functions from
-# functions.jl) is hand-written C++ in src/aapc.cpp, because that logic is a
+# functions.jl) is hand-written C++ in src/apc.cpp, because that logic is a
 # stable algorithm rather than CODATA-versioned data. Re-run this script
 # whenever AtomicAndPhysicalConstants.jl changes (e.g. a new CODATA release) to
 # keep the C++ numbers byte-for-byte in step with the Julia package.
@@ -22,7 +22,7 @@
 # Usage:
 #   julia --project=codegen codegen/generate.jl [OUTPUT_INCLUDE_DIR]
 #
-# OUTPUT_INCLUDE_DIR defaults to <repo>/include/aapc.
+# OUTPUT_INCLUDE_DIR defaults to <repo>/include/apc.
 
 using AtomicAndPhysicalConstants
 using Printf
@@ -30,7 +30,7 @@ using Printf
 const A = AtomicAndPhysicalConstants
 
 const OUT_DIR = length(ARGS) >= 1 ? ARGS[1] :
-                normpath(joinpath(@__DIR__, "..", "include", "aapc"))
+                normpath(joinpath(@__DIR__, "..", "include", "apc"))
 
 # ── Float formatting ─────────────────────────────────────────────────────────
 # Julia's `repr` gives the shortest decimal string that round-trips a Float64
@@ -45,7 +45,7 @@ end
 
 cstr(s) = '"' * s * '"'  # species names are ASCII with no quotes/backslashes
 
-# Map an AAPC `Kind` enum instance to the C++ `aapc::Kind` enumerator. `NULL`
+# Map an APC `Kind` enum instance to the C++ `apc::Kind` enumerator. `NULL`
 # would collide with the C `NULL` macro, so it is emitted as `NULL_KIND`.
 cppkind(k) = k === A.NULL ? "Kind::NULL_KIND" : "Kind::" * uppercase(string(k))
 
@@ -54,7 +54,7 @@ const BANNER = """
 // GENERATED FILE — DO NOT EDIT BY HAND.
 //
 // Produced by codegen/generate.jl from AtomicAndPhysicalConstants.jl
-// (CODATA $(A.RELEASE_YEAR), AAPC v$(pkgversion(A))). Regenerate with:
+// (CODATA $(A.RELEASE_YEAR), APC v$(pkgversion(A))). Regenerate with:
 //     julia --project=codegen codegen/generate.jl
 // ─────────────────────────────────────────────────────────────────────────────
 """
@@ -65,7 +65,7 @@ function emit_constants(path)
         print(io, BANNER)
         println(io, "#pragma once")
         println(io)
-        println(io, "namespace aapc {")
+        println(io, "namespace apc {")
         println(io)
         println(io, "// CODATA release year that these values are drawn from.")
         println(io, "constexpr int RELEASE_YEAR = $(A.RELEASE_YEAR);")
@@ -81,7 +81,7 @@ function emit_constants(path)
             println(io, "constexpr double $(n) = $(cdouble(v));")
         end
         println(io)
-        println(io, "}  // namespace aapc")
+        println(io, "}  // namespace apc")
     end
     return path
 end
@@ -95,16 +95,16 @@ function emit_species(path)
         println(io, "#include <string>")
         println(io, "#include <unordered_map>")
         println(io)
-        println(io, "#include \"aapc/aapc.h\"  // for aapc::Kind")
+        println(io, "#include \"apc/apc.h\"  // for apc::Kind")
         println(io)
-        println(io, "namespace aapc {")
+        println(io, "namespace apc {")
         println(io, "namespace data {")
         println(io)
         println(io, "struct SubatomicData {")
         println(io, "  double charge;  // units of e")
         println(io, "  double mass;    // eV/c^2")
         println(io, "  double spin;    // hbar")
-        println(io, "  double moment;  // eV/T (J/T in AAPC, converted there)")
+        println(io, "  double moment;  // eV/T (J/T in APC, converted there)")
         println(io, "  Kind kind;")
         println(io, "};")
         println(io)
@@ -157,7 +157,7 @@ function emit_species(path)
         println(io, "}")
         println(io)
         println(io, "}  // namespace data")
-        println(io, "}  // namespace aapc")
+        println(io, "}  // namespace apc")
     end
     return path
 end
@@ -166,7 +166,7 @@ function main()
     mkpath(OUT_DIR)
     c = emit_constants(joinpath(OUT_DIR, "constants.generated.h"))
     s = emit_species(joinpath(OUT_DIR, "species_data.generated.h"))
-    println("AAPC-codegen: wrote")
+    println("APC-codegen: wrote")
     println("  ", c)
     println("  ", s)
     println("Mirrored AtomicAndPhysicalConstants v$(pkgversion(A)) (CODATA $(A.RELEASE_YEAR)): ",
