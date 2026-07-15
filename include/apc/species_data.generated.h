@@ -2,7 +2,7 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 //
 // Produced by codegen/generate.jl from AtomicAndPhysicalConstants.jl
-// (CODATA 2022, AAPC v0.9.0). Regenerate with:
+// (CODATA 2022, APC v0.9.0). Regenerate with:
 //     julia --project=codegen codegen/generate.jl
 // ─────────────────────────────────────────────────────────────────────────────
 #pragma once
@@ -10,16 +10,16 @@
 #include <string>
 #include <unordered_map>
 
-#include "aapc/aapc.h"  // for aapc::Kind
+#include "apc/apc.h"  // for apc::Kind
 
-namespace aapc {
+namespace apc {
 namespace data {
 
 struct SubatomicData {
   double charge;  // units of e
   double mass;    // eV/c^2
   double spin;    // hbar
-  double moment;  // eV/T (J/T in AAPC, converted there)
+  double moment;  // eV/T (J/T in APC, converted there)
   Kind kind;
 };
 
@@ -186,4 +186,4 @@ atomic_species() {
 }
 
 }  // namespace data
-}  // namespace aapc
+}  // namespace apc

@@ -1,6 +1,6 @@
 /**
- * @file aapc.cpp
- * @brief Species construction and accessors — a hand port of AAPC's
+ * @file apc.cpp
+ * @brief Species construction and accessors — a hand port of APC's
  *        constructors.jl and functions.jl.
  *
  * The physical data consumed here is generated from
@@ -8,7 +8,7 @@
  * hand-written, so it stays fixed across CODATA releases.
  */
 
-#include "aapc/aapc.h"
+#include "apc/apc.h"
 
 #include <cctype>
 #include <cmath>
@@ -16,9 +16,9 @@
 #include <stdexcept>
 #include <string>
 
-#include "aapc/species_data.generated.h"
+#include "apc/species_data.generated.h"
 
-namespace aapc {
+namespace apc {
 
 namespace {
 
@@ -165,9 +165,9 @@ Species parse_atomic_species(const std::string& name) {
   if (symbol == "He" && iso == 3 && charge == 2)
     g_factor = gmap.at("helion") * M_HELION / (2 * M_PROTON);
   else if (symbol == "H" && iso == 3 && charge == 1)
-    // Mirrors AAPC: its triton g-factor uses M_TRITON, which constants.jl does
+    // Mirrors APC: its triton g-factor uses M_TRITON, which constants.jl does
     // not define, so `Species("triton")` throws upstream. Reproduce that error
-    // faithfully. When AAPC adds M_TRITON, emit it via codegen and replace this
+    // faithfully. When APC adds M_TRITON, emit it via codegen and replace this
     // with: g_factor = gmap.at("triton") * M_TRITON / M_PROTON;
     throw std::invalid_argument("UndefVarError: `M_TRITON` not defined");
   else if (symbol == "H" && iso == 2 && charge == 1)
@@ -254,4 +254,4 @@ double anomalous_moment_of(const std::string& name) {
   return gyromagnetic_anomaly(species(name));
 }
 
-}  // namespace aapc
+}  // namespace apc

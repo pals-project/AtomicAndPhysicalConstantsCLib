@@ -1,24 +1,24 @@
-#ifndef AAPC_AAPC_H
-#define AAPC_AAPC_H
+#ifndef APC_APC_H
+#define APC_APC_H
 
 /**
- * @file aapc.h
+ * @file apc.h
  * @brief C++ mirror of AtomicAndPhysicalConstants.jl.
  *
  * Physical constants and particle/isotope data come from
  * AtomicAndPhysicalConstants.jl via codegen/generate.jl (see
  * constants.generated.h). The Species name parser and accessor functions
  * declared here mirror constructors.jl and functions.jl of that package and are
- * implemented in src/aapc.cpp.
+ * implemented in src/apc.cpp.
  */
 
 #include <string>
 
-#include "aapc/constants.generated.h"  // constexpr double constants + RELEASE_YEAR
+#include "apc/constants.generated.h"  // constexpr double constants + RELEASE_YEAR
 
-namespace aapc {
+namespace apc {
 
-/// Particle classification. Mirrors AAPC's `@enum Kind ATOM HADRON LEPTON
+/// Particle classification. Mirrors APC's `@enum Kind ATOM HADRON LEPTON
 /// PHOTON NULL`; `NULL` is renamed `NULL_KIND` to avoid the C `NULL` macro.
 enum class Kind { ATOM, HADRON, LEPTON, PHOTON, NULL_KIND };
 
@@ -30,7 +30,7 @@ struct Species {
   double mass;       ///< Mass in eV/c^2.
   double spin;       ///< Spin in units of hbar.
   double moment;     ///< Magnetic moment in eV/T (0 for atoms).
-  double g_factor;   ///< g-factor (0 where AAPC leaves it unset).
+  double g_factor;   ///< g-factor (0 where APC leaves it unset).
   double iso;        ///< Mass number (0 subatomic, -1 average, else isotope).
   Kind kind;         ///< Particle classification.
 };
@@ -69,6 +69,6 @@ double mass_of(const std::string& name);              ///< massof(species(name))
 double charge_of(const std::string& name);            ///< chargeof(species(name)).
 double anomalous_moment_of(const std::string& name);  ///< gyromagnetic_anomaly(species(name)).
 
-}  // namespace aapc
+}  // namespace apc
 
-#endif  // AAPC_AAPC_H
+#endif  // APC_APC_H
