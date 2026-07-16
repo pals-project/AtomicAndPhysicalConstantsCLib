@@ -71,14 +71,14 @@ int main() {
   check_close("H mass", mass_of("H"), 938890867.99172413);
   check_close("H charge", charge_of("H"), 0.0);
 
-  check_close("3He mass", mass_of("3He"), 2809413524.398952);
-  check_close("12C mass", mass_of("12C"), 11177929229.039999);
+  check_close("#3He mass", mass_of("#3He"), 2809413524.398952);
+  check_close("#12C mass", mass_of("#12C"), 11177929229.039999);
 
   check_close("H+ mass", mass_of("H+"), 938379869.0410341);
   check_close("H+ charge", charge_of("H+"), 1.0);
 
-  check_close("235U++ mass", mass_of("235U++"), 218941012699.86734);
-  check_close("235U++ charge", charge_of("235U++"), 2.0);
+  check_close("#235U++ mass", mass_of("#235U++"), 218941012699.86734);
+  check_close("#235U++ charge", charge_of("#235U++"), 2.0);
 
   // --- Named nuclei ---
   check_close("deuteron mass", mass_of("deuteron"), 1875612929.0417254);
@@ -92,12 +92,12 @@ int main() {
               -4.1841537498328929);
 
   // --- Species struct fields & accessors ---
-  Species c12 = species("12C");
-  check_close("12C spin", c12.spin, 6.0);
-  check_close("12C iso", atomicnumberof(c12), 12.0);
-  check_true("12C kind ATOM", kindof(c12) == Kind::ATOM);
-  check_true("12C nameof", nameof(c12) == "#12C");
-  check_true("235U++ nameof", nameof(species("235U++")) == "#235U+2");
+  Species c12 = species("#12C");
+  check_close("#12C spin", c12.spin, 6.0);
+  check_close("#12C iso", atomicnumberof(c12), 12.0);
+  check_true("#12C kind ATOM", kindof(c12) == Kind::ATOM);
+  check_true("#12C nameof", nameof(c12) == "#12C");
+  check_true("#235U++ nameof", nameof(species("#235U++")) == "#235U+2");
 
   // --- Null species ---
   check_true("null isnull", isnullspecies(species("")));
@@ -107,6 +107,9 @@ int main() {
   check_true("triton throws (M_TRITON undefined upstream)", throws("triton"));
   check_true("unknown throws", throws("nonsense"));
   check_true("bad charge throws", throws("H+-"));
+  // A bare ASCII mass number (no '#') is an error; use "#3He" not "3He".
+  check_true("unprefixed mass number throws", throws("3He"));
+  check_true("unprefixed anti mass number throws", throws("anti-4He"));
 
   std::printf("\n%d checks, %d failures\n", g_checks, g_failures);
   return g_failures == 0 ? 0 : 1;

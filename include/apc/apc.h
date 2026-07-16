@@ -40,9 +40,9 @@ struct Species {
  *
  * Accepts subatomic particles ("electron", "proton", "pion+", ...),
  * anti-particles ("anti-proton"), named nuclei ("deuteron", "triton",
- * "helion"), bare elements ("H", "Fe"), isotopes ("12C", "235U") and ion
- * charge states ("H+", "He++", "3He++"). Isotope numbers precede the symbol and
- * may carry a leading '#'; charge follows the symbol.
+ * "helion"), bare elements ("H", "Fe"), isotopes ("#12C", "#235U") and ion
+ * charge states ("H+", "He++", "#3He++"). A mass number precedes the symbol and
+ * must carry a leading '#' (e.g. "#4He", not "4He"); charge follows the symbol.
  *
  * @param name Species name.
  * @return The constructed Species. An empty or "null" name yields the null

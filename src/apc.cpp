@@ -48,10 +48,16 @@ void parse_atomic_name(const std::string& name, std::string& symbol, int& iso,
   const size_t symbol_start = static_cast<size_t>(m.position(0));
   const size_t symbol_end = symbol_start + symbol.size();  // one past the symbol
 
-  // Left of the symbol: isotope number, optionally prefixed with '#'.
+  // Left of the symbol: isotope (mass) number. A mass number given as ASCII
+  // digits MUST be prefixed with '#' (e.g. "#4He", not "4He"), matching
+  // AtomicAndPhysicalConstants.jl (bmad-sim/AtomicAndPhysicalConstants.jl#291).
   std::string left = name.substr(0, symbol_start);
   if (!left.empty()) {
-    if (left.front() == '#') left.erase(left.begin());
+    if (left.front() != '#')
+      throw std::invalid_argument(
+          "A mass number must be prefixed with '#' (e.g. \"#4He\"): \"" + name +
+          "\"");
+    left.erase(left.begin());
     try {
       size_t pos = 0;
       iso = std::stoi(left, &pos);
