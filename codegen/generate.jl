@@ -45,9 +45,16 @@ end
 
 cstr(s) = '"' * s * '"'  # species names are ASCII with no quotes/backslashes
 
-# Map an APC `Kind` enum instance to the C++ `apc::Kind` enumerator. `NULL`
-# would collide with the C `NULL` macro, so it is emitted as `NULL_KIND`.
-cppkind(k) = k === A.NULL ? "Kind::NULL_KIND" : "Kind::" * uppercase(string(k))
+# The C++ `apc::Kind` enumerator for a subatomic species. APC v0.11 dropped the
+# `kind` field from `SubatomicSpecies`; `subatomic_particle` in constructors.jl
+# now derives the classification from the name, and this mirrors that rule so
+# each generated row stays self-describing. (`Kind.NULL` is emitted as
+# `NULL_KIND` in C++, where `NULL` is a macro, but no table row ever needs it.)
+function cppkind(name)
+    name == "photon" && return "Kind::PHOTON"
+    name in A.leptons && return "Kind::LEPTON"
+    return "Kind::HADRON"
+end
 
 const BANNER = """
 // ─────────────────────────────────────────────────────────────────────────────
@@ -75,6 +82,7 @@ function emit_constants(path)
         println(io, "// moments eV/T, etc.).")
         for n in sort(names(A))
             isdefined(A, n) || continue
+            n === :RELEASE_YEAR && continue  # already emitted above, as an int
             v = getproperty(A, n)
             v isa Real || continue          # skip types, functions, dicts, enums
             v isa Bool && continue
@@ -105,6 +113,7 @@ function emit_species(path)
         println(io, "  double mass;    // eV/c^2")
         println(io, "  double spin;    // hbar")
         println(io, "  double moment;  // eV/T (J/T in APC, converted there)")
+        println(io, "  double gspin;   // spin g-factor, stored signed")
         println(io, "  Kind kind;")
         println(io, "};")
         println(io)
@@ -121,21 +130,10 @@ function emit_species(path)
         println(io, "  static const std::unordered_map<std::string, SubatomicData> m = {")
         for name in sort(collect(keys(A.SUBATOMIC_SPECIES)))
             pd = A.SUBATOMIC_SPECIES[name]
-            @printf(io, "    {%s, {%s, %s, %s, %s, %s}},\n",
+            @printf(io, "    {%s, {%s, %s, %s, %s, %s, %s}},\n",
                     cstr(name), cdouble(pd.charge), cdouble(pd.mass),
-                    cdouble(pd.spin), cdouble(pd.moment), cppkind(pd.kind))
-        end
-        println(io, "  };")
-        println(io, "  return m;")
-        println(io, "}")
-        println(io)
-
-        # g-factor map
-        println(io, "inline const std::unordered_map<std::string, double>&")
-        println(io, "g_factor_map() {")
-        println(io, "  static const std::unordered_map<std::string, double> m = {")
-        for name in sort(collect(keys(A.G_FACTOR_MAP)))
-            @printf(io, "    {%s, %s},\n", cstr(name), cdouble(A.G_FACTOR_MAP[name]))
+                    cdouble(pd.spin), cdouble(pd.moment), cdouble(pd.gspin),
+                    cppkind(name))
         end
         println(io, "  };")
         println(io, "  return m;")
