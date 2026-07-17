@@ -10,6 +10,14 @@ It is a faithful C++ mirror of
 ecosystem. Values are kept identical to the Julia package by **generating** the
 data tables directly from it rather than transcribing them by hand.
 
+## Versioning
+
+The version mirrors the APC release it is generated from: `apc` **v0.11.1** is
+the C++ view of APC v0.11.1. Regenerating against a new APC release means
+bumping `project(... VERSION)` in `CMakeLists.txt` and tagging the commit to
+match. Downstream projects should pin that tag rather than track `main`, so that
+a push here cannot change their build without them asking for it.
+
 ## Layout
 
 ```
@@ -35,10 +43,16 @@ float formatting and C++'s `strtod` obey the same IEEE rounding, every literal
 parses back to the identical bits.
 
 The **logic** — the `Species(name)` parser (isotopes, ion charge states,
-anti-particles, named nuclei) and the accessor functions (`massof`, `chargeof`,
+anti-atoms) and the accessor functions (`massof`, `chargeof`,
 `gyromagnetic_anomaly`, …) — is hand-written in `src/apc.cpp`. It mirrors APC's
 `constructors.jl` and `functions.jl`. That code is a stable algorithm rather than
 CODATA-versioned data, so it does not belong in codegen.
+
+One deliberate exception: APC has no `kind` field on `SubatomicSpecies`, deriving
+the classification by name in `subatomic_particle`. The codegen applies that same
+rule and emits a `kind` per row, so each generated row is self-describing. If APC
+ever changes how it classifies a particle, that rule must be updated in
+`generate.jl` rather than in `apc.cpp`.
 
 This means a new CODATA release (or any data change in APC) is absorbed by
 **re-running the codegen** — no hand-editing of numbers, no transcription errors.
@@ -78,9 +92,9 @@ consumers such as Julia) plus the test executable.
 ```cpp
 #include "apc/apc.h"
 
-double m = apc::mass_of("12C");                 // eV/c^2
+double m = apc::mass_of("#12C");                // eV/c^2
 double q = apc::charge_of("H+");                // units of e
-double a = apc::anomalous_moment_of("proton");  // (g - 2) / 2
+double a = apc::anomalous_moment_of("proton");  // (|g| - 2) / 2
 
 apc::Species he = apc::species("helion");
 double spin = he.spin;                           // in units of hbar
@@ -90,9 +104,25 @@ double c    = apc::C_LIGHT;                      // a mirrored constant
 The three name→value helpers `mass_of`, `charge_of`, and `anomalous_moment_of`
 correspond to the PALS-standard expression functions of the same names.
 
-## Known upstream issue
+`anomalous_moment_of` is defined only for leptons and hadrons; for photons,
+atoms and the null species it returns NaN, as APC does.
 
-`Species("triton")` currently throws, faithfully mirroring APC: its triton
-g-factor calculation references `M_TRITON`, which APC's `constants.jl` does not
-define. Once APC adds `M_TRITON`, regenerate the constants and update the one
-guarded branch in `src/apc.cpp` (it points to the exact line).
+## Known upstream issues
+
+`Species("triton")` and `Species("anti-triton")` report `spin = 1.5`. The triton
+is physically spin-1/2; 1.5 is what the atomic parser's `0.5 * iso` heuristic
+yields for A=3, and the value carried over when the triton became a subatomic
+species. Reported upstream in APC PR #294. The mirror reproduces it deliberately
+— it reflects APC, not a porting error.
+
+The gyromagnetic anomaly is computed from the *absolute* g-factor, so species
+with a negative g-factor (helion, deuteron, neutron, …) get an anomaly that does
+not correspond to the usual signed definition. Again this mirrors APC's
+`gyromagnetic_anomaly`.
+
+## Known limitation
+
+APC accepts a mass number written with Unicode superscripts (`"⁴He"`, equivalent
+to `"#4He"`). This mirror does not, and rejects it. ASCII forms behave
+identically to APC, including the rule that a mass number is only recognised
+with a leading `#` — `"#3He"` is accepted, `"3He"` is not.

@@ -3,4 +3,4 @@ AtomicAndPhysicalConstants = "5c0d271c-5419-4163-b387-496237733d8b"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [compat]
-AtomicAndPhysicalConstants = "0.9"
+AtomicAndPhysicalConstants = "0.11"
