@@ -49,6 +49,15 @@ static bool throws(const std::string& name) {
   }
 }
 
+static bool throws_z(const apc::Species& s) {
+  try {
+    apc::atomicnumberof(s);
+    return false;
+  } catch (const std::invalid_argument&) {
+    return true;
+  }
+}
+
 int main() {
   using namespace apc;
 
@@ -121,8 +130,23 @@ int main() {
   // --- Species struct fields & accessors ---
   Species c12 = species("#12C");
   check_close("#12C spin", c12.spin, 6.0);
-  check_close("#12C iso", atomicnumberof(c12), 12.0);
   check_true("#12C kind ATOM", kindof(c12) == Kind::ATOM);
+
+  // --- atomicnumberof is Z, iso_of is the mass number ---
+  // Carbon-12 separates the two: Z = 6, A = 12. Values from APC v0.11's
+  // docstring examples.
+  check_close("#12C Z", atomicnumberof(c12), 6.0);
+  check_close("#12C iso", iso_of(c12), 12.0);
+  check_close("Fe Z", atomicnumberof(species("Fe")), 26.0);
+  check_close("H+ Z", atomicnumberof(species("H+")), 1.0);
+  check_close("anti-H Z", atomicnumberof(species("anti-H")), -1.0);
+  // A bare symbol is the natural-abundance average, which APC marks iso == -1.
+  check_close("H iso (natural abundance)", iso_of(species("H")), -1.0);
+  // Non-atoms have no atomic number at all; APC errors rather than return 0.
+  check_true("electron Z throws", throws_z(species("electron")));
+  check_true("photon Z throws", throws_z(species("photon")));
+  check_true("null Z throws", throws_z(species("")));
+  check_close("electron iso is 0", iso_of(species("electron")), 0.0);
   check_true("#12C nameof", nameof(c12) == "#12C");
   check_true("#235U++ nameof", nameof(species("#235U++")) == "#235U+2");
   check_true("photon kind", kindof(species("photon")) == Kind::PHOTON);

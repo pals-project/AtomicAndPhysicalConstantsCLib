@@ -166,7 +166,28 @@ Species species(const std::string& name) {
 
 double massof(const Species& s) { return s.mass; }
 double chargeof(const Species& s) { return s.charge; }
-double atomicnumberof(const Species& s) { return s.iso; }
+
+// Z is not carried on the Species — APC looks it up from the element symbol on
+// demand, so this does the same. The stored name is the bare symbol ("C" for
+// "#12C", "H" for "H+") with an "anti-" prefix for anti-atoms.
+int atomicnumberof(const Species& s) {
+  if (s.kind != Kind::ATOM)
+    throw std::invalid_argument(
+        "Particle species which are not atoms do not have atomic numbers.");
+
+  std::string symbol = s.name;
+  const bool anti_atom = strip_anti(symbol);
+
+  const auto& atoms = data::atomic_species();
+  auto it = atoms.find(symbol);
+  if (it == atoms.end())
+    throw std::invalid_argument("Element " + symbol +
+                                " not found in atomic species database");
+  return anti_atom ? -it->second.Z : it->second.Z;
+}
+
+double iso_of(const Species& s) { return s.kind == Kind::ATOM ? s.iso : 0.0; }
+
 Kind kindof(const Species& s) { return s.kind; }
 bool isnullspecies(const Species& s) { return s.kind == Kind::NULL_KIND; }
 
