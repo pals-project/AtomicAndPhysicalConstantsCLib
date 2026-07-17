@@ -54,9 +54,19 @@ Species species(const std::string& name);
 // --- Accessors (mirror functions.jl) ---
 double massof(const Species& s);             ///< Mass in eV/c^2.
 double chargeof(const Species& s);           ///< Charge in units of e.
-double atomicnumberof(const Species& s);     ///< Mass number (`iso`).
 Kind kindof(const Species& s);               ///< Particle classification.
 bool isnullspecies(const Species& s);        ///< True for the null species.
+
+/// Atomic number Z, the proton count — not the mass number, which is iso_of().
+/// Returns -Z for an anti-atom, to distinguish it from the matter atom of the
+/// same symbol.
+/// @throws std::invalid_argument if `s` is not an atom, mirroring APC, which
+///         errors rather than returning a placeholder.
+int atomicnumberof(const Species& s);
+
+/// Mass number: the isotope number for an atom, -1 for a natural-abundance
+/// average, and 0 for anything that is not an atom.
+double iso_of(const Species& s);
 
 /// Spin g-factor. Absolute value by default; pass `is_signed` for the signed
 /// value (negative for e.g. the electron). Mirrors `gspin_of(; signed)`.
