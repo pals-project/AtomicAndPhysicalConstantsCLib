@@ -126,3 +126,8 @@ APC accepts a mass number written with Unicode superscripts (`"⁴He"`, equivale
 to `"#4He"`). This mirror does not, and rejects it. ASCII forms behave
 identically to APC, including the rule that a mass number is only recognised
 with a leading `#` — `"#3He"` is accepted, `"3He"` is not.
+
+## License
+
+AtomicAndPhysicalConstantsCLib is licensed under the GNU General Public
+License, version 2 only (`GPL-2.0-only`). See [LICENSE](LICENSE).
