@@ -1,19 +1,16 @@
 # AtomicAndPhysicalConstantsCLib
 
 A C/C++ library for physical constants and particle properties (mass, charge,
-spin, g-factor, magnetic moment) for use in accelerator/simulation codes such as
-PALS and pals-cpp.
+spin, g-factor, magnetic moment) for use with C/C++ code.
 
 It is a faithful C++ mirror of
 [AtomicAndPhysicalConstants.jl](https://github.com/bmad-sim/AtomicAndPhysicalConstants.jl)
-(APC), the source of truth for these numbers in the Bmad / SciBmad / PALS
-ecosystem. Values are kept identical to the Julia package by **generating** the
-data tables directly from it rather than transcribing them by hand.
+(APC).
 
 ## Versioning
 
-The version mirrors the APC release it is generated from: `apc` **v0.12.0** is
-the C++ view of APC v0.12.0. Regenerating against a new APC release means
+The version mirrors the APC release it is generated from. 
+Regenerating against a new APC release means
 bumping `project(... VERSION)` in `CMakeLists.txt` and tagging the commit to
 match. Downstream projects should pin that tag rather than track `main`, so that
 a push here cannot change their build without them asking for it.
