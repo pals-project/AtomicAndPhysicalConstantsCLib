@@ -25,10 +25,10 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      # Ninja, not the Visual Studio generator: Ninja refuses two targets that
-      # write the same file, which is how the static and shared libraries'
-      # apc.lib clash showed up. The developer environment puts cl.exe and the
-      # Ninja that ships with Visual Studio on PATH.
+      # Ninja rather than the Visual Studio generator: Ninja refuses two
+      # targets that write the same file, which the Visual Studio generator
+      # lets through. The developer environment puts cl.exe and the Ninja that
+      # ships with Visual Studio on PATH.
       - uses: ilammy/msvc-dev-cmd@v1
       - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build --parallel
