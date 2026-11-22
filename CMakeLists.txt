@@ -20,6 +20,14 @@ target_include_directories(apc PUBLIC
 # A shared build is handy for FFI consumers (e.g. Julia).
 add_library(apc_shared SHARED src/apc.cpp)
 set_target_properties(apc_shared PROPERTIES OUTPUT_NAME apc)
+# With MSVC a DLL's import library is <name>.lib, the static library's own
+# name, so both targets would write apc.lib: Ninja refuses to build that, and
+# the Visual Studio generator lets one overwrite the other. Name the import
+# library apc_shared.lib instead; apc.dll keeps its name. MinGW's import
+# library (libapc.dll.a) never clashed with libapc.a, so is left as it is.
+if(MSVC)
+  set_target_properties(apc_shared PROPERTIES ARCHIVE_OUTPUT_NAME apc_shared)
+endif()
 target_include_directories(apc_shared PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
