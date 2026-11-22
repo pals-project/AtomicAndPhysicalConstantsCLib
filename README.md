@@ -9,9 +9,8 @@ It is a faithful C++ mirror of
 
 ## Versioning
 
-The version mirrors the APC release it is generated from. Pin a release tag
-rather than tracking `main`, so that a push here cannot change your build
-without you asking for it.
+The version mirrors the APC release it is generated from. 
+The version is setup in the CMakeLists.txt file.
 
 ## Building
 
@@ -39,7 +38,7 @@ double c    = apc::C_LIGHT;                      // a mirrored constant
 ```
 
 The three name→value helpers `mass_of`, `charge_of`, and `anomalous_moment_of`
-correspond to the PALS-standard expression functions of the same names.
+correspond to [PALS](https://pals-project.readthedocs.io/en/latest/) expression functions of the same names.
 
 `anomalous_moment_of` is the charge-normalized anomaly `a = (g/q - 2)/2`, the
 one in the Thomas–BMT equation: the electron and positron both get
