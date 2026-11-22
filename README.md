@@ -31,29 +31,23 @@ tests/
   test_apc.cpp                   Checks against reference values from APC
 ```
 
-## The data / logic split
+## What is generated and what is hand-written
 
-Only the **data** is generated. `codegen/generate.jl` loads the live APC module
-and emits its scalar constants and its subatomic/atomic species tables as
-`constexpr double`s and `std::unordered_map`s, including the NUBASE2020 nuclear
-spin of every isotope (`NaN` where NUBASE assigns none). Because Julia's
-shortest-round-trip float formatting and C++'s `strtod` obey the same IEEE
-rounding, every literal parses back to the identical bits.
+- **The numbers are generated.** `codegen/generate.jl` reads the constants and
+  the particle and isotope tables straight from APC and writes them to
+  `include/apc/*.generated.h`. Every value matches APC's bit for bit.
+- **The code is hand-written.** `src/apc.cpp` turns a name such as `"#12C"`,
+  `"H+"` or `"anti-#3He"` into a `Species`, and provides the accessors
+  (`massof`, `chargeof`, …). It follows APC's `constructors.jl` and
+  `functions.jl`.
 
-The **logic** — the `Species(name)` parser (isotopes, ion charge states,
-anti-atoms) and the accessor functions (`massof`, `chargeof`,
-`gyromagnetic_anomaly`, …) — is hand-written in `src/apc.cpp`. It mirrors APC's
-`constructors.jl` and `functions.jl`. That code is a stable algorithm rather than
-CODATA-versioned data, so it does not belong in codegen.
+So when APC's data changes, for example with a new CODATA release, just re-run
+the codegen. Only a change to APC's code needs a matching edit to `apc.cpp`.
 
-One deliberate exception: APC has no `kind` field on `SubatomicSpecies`, deriving
-the classification by name in `subatomic_particle`. The codegen applies that same
-rule and emits a `kind` per row, so each generated row is self-describing. If APC
-ever changes how it classifies a particle, that rule must be updated in
-`generate.jl` rather than in `apc.cpp`.
-
-This means a new CODATA release (or any data change in APC) is absorbed by
-**re-running the codegen** — no hand-editing of numbers, no transcription errors.
+One exception: a particle's `kind` (photon, lepton or hadron). APC works it out
+from the particle's name, in `subatomic_particle`. `generate.jl` applies the same
+rule and stores the result in the table, so if APC changes that rule, update
+`generate.jl`.
 
 ## Regenerating the data (APC-codegen)
 
@@ -112,7 +106,7 @@ APC does. The g-factors are normalized to each particle's own mass, so
 values, which are quoted against the nuclear magneton.
 
 An atom's spin is its nuclear ground-state spin from NUBASE2020 (`"#12C"` is 0,
-`"#3He"` is 1/2). A bare symbol such as `"He"` is the abundance average, which
+`"#3He"` is 1/2), or NaN where NUBASE assigns none. A bare symbol such as `"He"` is the abundance average, which
 has no single spin, so `spin` is NaN. An element with no stable isotopes (Tc, Pm,
 and Po onward apart from Th, Pa and U) has no standard atomic weight, so it
 needs a mass number: `"#209Po"` is accepted, `"Po"` throws.
