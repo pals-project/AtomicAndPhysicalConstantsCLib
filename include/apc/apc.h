@@ -28,7 +28,7 @@ struct Species {
   std::string name;  ///< Name as constructed, e.g. "electron", "H", "anti-He".
   double charge;     ///< Charge in units of the elementary charge e.
   double mass;       ///< Mass in eV/c^2.
-  double spin;       ///< Spin in units of hbar.
+  double spin;       ///< Spin in hbar; for an atom the nuclear spin, NaN if undefined.
   double moment;     ///< Magnetic moment in eV/T (0 for atoms).
   double gspin;      ///< Spin g-factor, stored signed (0 for atoms).
   double iso;        ///< Mass number (0 subatomic, -1 average, else isotope).
@@ -40,20 +40,34 @@ struct Species {
  *
  * Accepts subatomic particles ("electron", "proton", "pion+", ...),
  * anti-particles ("anti-proton"), named nuclei ("deuteron", "triton",
- * "helion"), bare elements ("H", "Fe"), isotopes ("12C", "235U") and ion
- * charge states ("H+", "He++", "3He++"). Isotope numbers precede the symbol and
- * may carry a leading '#'; charge follows the symbol.
+ * "helion"), bare elements ("H", "Fe"), isotopes ("#12C", "#235U"), ion charge
+ * states ("H+", "He++", "#3He+2") and anti-atoms ("anti-H", "anti-#3He"). A
+ * mass number precedes the symbol and must carry a leading '#'; charge follows
+ * the symbol. An anti-atom is marked only by a leading "anti-".
+ *
+ * An element with no stable isotopes (Tc, Pm, and Po onward apart from Th, Pa
+ * and U) has no standard atomic weight, so a mass number is required for it.
  *
  * @param name Species name.
- * @return The constructed Species. An empty or "null" name yields the null
- *         species (kind == NULL_KIND).
- * @throws std::invalid_argument if the name is not found in the databases.
+ * @return The constructed Species. "", "null", "Null" or "NULL" yields the
+ *         null species (kind == NULL_KIND).
+ * @throws std::invalid_argument if the name is not a recognized species, with
+ *         APC's error message.
  */
 Species species(const std::string& name);
 
 // --- Accessors (mirror functions.jl) ---
 double massof(const Species& s);             ///< Mass in eV/c^2.
 double chargeof(const Species& s);           ///< Charge in units of e.
+
+/// Spin in units of hbar. For an atom, the NUBASE2020 nuclear ground-state
+/// spin (electron spin is not included); NaN for an atom given without a mass
+/// number, and for the few isotopes NUBASE assigns no unambiguous spin.
+double spinof(const Species& s);
+
+/// Magnetic dipole moment in eV/T; 0 for atoms and the null species.
+double momentof(const Species& s);
+
 Kind kindof(const Species& s);               ///< Particle classification.
 bool isnullspecies(const Species& s);        ///< True for the null species.
 
@@ -68,22 +82,29 @@ int atomicnumberof(const Species& s);
 /// average, and 0 for anything that is not an atom.
 double iso_of(const Species& s);
 
-/// Spin g-factor. Absolute value by default; pass `is_signed` for the signed
-/// value (negative for e.g. the electron). Mirrors `gspin_of(; signed)`.
+/// Spin g-factor, in the convention mu = g (e / 2m) S with the particle's own
+/// mass setting the magneton. Absolute value by default; pass `is_signed` for
+/// the signed value (negative for e.g. the electron, positive for the
+/// positron). Mirrors `g_spin(; signed)`.
 double g_spin(const Species& s, bool is_signed = false);
 
-/// Gyromagnetic anomaly (|g| - 2) / 2. Defined only for leptons and hadrons;
-/// returns NaN for photons, atoms and the null species, as APC does.
+/// Gyromagnetic anomaly a = (g_q - 2) / 2, where g_q = g / q is the signed
+/// g-factor normalized to the particle's charge q — the anomaly that enters the
+/// Thomas-BMT equation. The electron and positron both get +0.00115965...
+/// Returns NaN for neutral particles (neutron, anti-neutron, pion0), photons,
+/// atoms and the null species, as APC does.
 double gyromagnetic_anomaly(const Species& s);
 
-/// Name of the species; for atoms includes isotope/charge unless basename.
-/// Mirrors `Base.nameof(::Species; basename)`.
+/// Name of the species, mirroring `Base.nameof(::Species)`: for an atom the
+/// symbol with its mass number and charge, e.g. "#4He+2", "Li+1", "anti-#3He".
+/// `basename` (a C++ extension) returns the stored name alone, e.g. "He".
 std::string nameof(const Species& s, bool basename = false);
 
 // --- PALS standard functions (name -> value convenience wrappers) ---
 double mass_of(const std::string& name);              ///< massof(species(name)).
 double charge_of(const std::string& name);            ///< chargeof(species(name)).
-/// gyromagnetic_anomaly(species(name)); NaN for photons, atoms and null.
+/// gyromagnetic_anomaly(species(name)); NaN for neutral particles, photons,
+/// atoms and null.
 double anomalous_moment_of(const std::string& name);
 
 }  // namespace apc

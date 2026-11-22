@@ -10,7 +10,7 @@
 
 #include "apc/apc.h"
 
-#include <cctype>
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <regex>
@@ -23,12 +23,13 @@ namespace apc {
 
 namespace {
 
-// Strip any anti-particle prefix ("anti-", "anti", "Anti-", "Anti") wherever it
-// appears, mirroring Julia's `ANTI_REGEX`. Returns whether one was present.
+// Strip a leading "anti-" prefix, mirroring APC's
+// `startswith(name, "anti-")` / `chopprefix(name, "anti-")`. Only that exact,
+// leading form marks an anti-atom. Returns whether it was present.
 bool strip_anti(std::string& name) {
-  static const std::regex anti(R"(anti-|anti|Anti-|Anti)");
-  if (!std::regex_search(name, anti)) return false;
-  name = std::regex_replace(name, anti, "");
+  static const std::string prefix = "anti-";
+  if (name.compare(0, prefix.size(), prefix) != 0) return false;
+  name.erase(0, prefix.size());
   return true;
 }
 
@@ -55,69 +56,77 @@ int chargeparse(const std::string& c) {
                               " is not formatted correctly.");
 }
 
-// Parse a bare atomic name into (symbol, iso, charge), mirroring the atomic
-// branch of `Species(name)`. The pattern is anchored and the '#' before a mass
-// number is mandatory, so "#3He" is accepted and "3He" is not.
-void parse_atomic_name(const std::string& name, std::string& symbol, int& iso,
-                       int& charge) {
+// Mirrors the atomic branch of `Species(name)` followed by `atomic_particle`.
+// The pattern is anchored and the '#' before a mass number is mandatory, so
+// "#3He" is accepted and "3He" is not. Error messages are APC's.
+Species parse_atomic_species(const std::string& species_name) {
+  std::string name = species_name;
+  const bool anti_atom = strip_anti(name);
+
   static const std::regex rgas(R"(^(?:#(\d+))?([A-Z][a-z]?)([+-].*)?$)");
+  const auto& atoms = data::atomic_species();
 
   std::smatch m;
-  if (!std::regex_match(name, m, rgas))
-    throw std::invalid_argument(
-        "you did not specify an atomic species or subatomic species in " +
-        name);
+  const bool matched = std::regex_match(name, m, rgas);
+  auto it = matched ? atoms.find(m[2].str()) : atoms.end();
+  if (it == atoms.end())
+    throw std::invalid_argument("\"" + species_name +
+                                "\" is not a recognized particle species");
+  const std::string symbol = m[2].str();
+  const data::AtomicData& atom = it->second;
 
-  iso = m[1].matched ? std::stoi(m[1].str()) : -1;
-  symbol = m[2].str();
+  int iso = -1;
+  if (m[1].matched) {
+    iso = std::stoi(m[1].str());
+    if (atom.mass.find(iso) == atom.mass.end())
+      throw std::invalid_argument(std::to_string(iso) +
+                                  " is not a valid isotope of " + symbol);
+  }
 
   const std::string charge_str = m[3].matched ? m[3].str() : "";
   if (charge_str.find('+') != std::string::npos &&
       charge_str.find('-') != std::string::npos)
-    throw std::invalid_argument(name +
+    throw std::invalid_argument(species_name +
                                 " has an ambiguously defined charge value.");
-  charge = chargeparse(charge_str);
-}
+  const int charge = chargeparse(charge_str);
 
-// Mirrors atomic_particle: build an atomic/anti-atomic Species.
-Species parse_atomic_species(const std::string& name) {
-  std::string local = name;
-  const bool anti_atom = strip_anti(local);
-
-  std::string symbol;
-  int iso, charge;
-  parse_atomic_name(local, symbol, iso, charge);
-
-  const auto& atoms = data::atomic_species();
-  auto it = atoms.find(symbol);
-  if (it == atoms.end())
-    throw std::invalid_argument("Element " + symbol +
-                                " not found in atomic species database");
-  const data::AtomicData& atom = it->second;
-
-  auto miso = atom.mass.find(iso);
-  if (miso == atom.mass.end())
-    throw std::invalid_argument("The isotope you specified is not available.");
   // An atom cannot shed more electrons than it has; for an anti-atom the same
   // bound applies to the negative side.
   if (!anti_atom ? charge > atom.Z : charge < -atom.Z)
-    throw std::invalid_argument("The specified element " + symbol +
-                                " cannot have the specified charge.");
+    throw std::invalid_argument(
+        "The specified element cannot have the specified charge.");
 
-  const double amu_mass = miso->second;
+  // An element with no stable isotopes has no standard atomic weight, and its
+  // abundance-average entry is a 0.0 placeholder; a mass number is required.
+  const double amu_mass = atom.mass.at(iso);
+  if (iso == -1 && amu_mass == 0.0) {
+    int lo = std::numeric_limits<int>::max(), hi = 0;
+    for (const auto& kv : atom.mass) {
+      if (kv.first > 0) lo = std::min(lo, kv.first);
+      hi = std::max(hi, kv.first);
+    }
+    throw std::invalid_argument(
+        symbol +
+        " has no standard atomic weight (it has no stable isotopes); give a "
+        "mass number A as \"#A" +
+        symbol + "\", with A from " + std::to_string(lo) + " to " +
+        std::to_string(hi));
+  }
+
   const double nmass = amu_mass * EV_PER_AMU;
   // Removing electrons for a positive ion lowers the mass; the anti-atom made
   // of positrons gains mass for the same nominal charge sign.
   const double mass =
       anti_atom ? nmass + M_ELECTRON * charge : nmass - M_ELECTRON * charge;
 
-  double spin;
-  if (iso == -1) {
-    const double partonum = std::round(amu_mass);
-    spin = anti_atom ? 0.5 * (partonum + (atom.Z + charge))
-                     : 0.5 * (partonum + (atom.Z - charge));
-  } else {
-    spin = 0.5 * iso;
+  // Nuclear spin is the tabulated NUBASE2020 ground-state value, the same for
+  // an anti-nucleus by CPT. The abundance average (iso == -1) runs over
+  // isotopes of differing spin, so it has none; nor do the few isotopes NUBASE
+  // leaves unassigned. Both are NaN, as in APC.
+  double spin = std::numeric_limits<double>::quiet_NaN();
+  if (iso != -1) {
+    auto sit = atom.spin.find(iso);
+    if (sit != atom.spin.end()) spin = sit->second;
   }
 
   // Atoms carry neither a moment nor a g-factor: APC stores none for them, and
@@ -132,15 +141,11 @@ Species parse_atomic_species(const std::string& name) {
                  Kind::ATOM};
 }
 
-std::string lower(std::string s) {
-  for (char& c : s) c = static_cast<char>(std::tolower(c));
-  return s;
-}
-
 }  // namespace
 
 Species species(const std::string& name) {
-  if (name.empty() || lower(name) == "null")
+  // APC's `nulls`: exactly these spellings, not any casing of "null".
+  if (name.empty() || name == "NULL" || name == "Null" || name == "null")
     return Species{"Null", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Kind::NULL_KIND};
 
   // The name is looked up whole, before any anti- prefix is stripped: the table
@@ -155,17 +160,16 @@ Species species(const std::string& name) {
                    pd.moment, pd.gspin,  0.0,     pd.kind};
   }
 
-  try {
-    return parse_atomic_species(name);
-  } catch (const std::exception& e) {
-    throw std::invalid_argument(
-        "Species '" + name +
-        "' not found in subatomic or atomic species database: " + e.what());
-  }
+  return parse_atomic_species(name);
 }
 
 double massof(const Species& s) { return s.mass; }
 double chargeof(const Species& s) { return s.charge; }
+double spinof(const Species& s) { return s.spin; }
+
+double momentof(const Species& s) {
+  return s.kind == Kind::ATOM || s.kind == Kind::NULL_KIND ? 0.0 : s.moment;
+}
 
 // Z is not carried on the Species — APC looks it up from the element symbol on
 // demand, so this does the same. The stored name is the bare symbol ("C" for
@@ -195,10 +199,15 @@ double g_spin(const Species& s, bool is_signed) {
   return is_signed ? s.gspin : std::fabs(s.gspin);
 }
 
+// a = (g_q - 2) / 2 with g_q = g / q, the g-factor normalized to the particle's
+// own charge. Dividing the signed g by q fixes the sign (electron and positron
+// agree) and handles the doubly charged helion. Undefined for neutral particles.
 double gyromagnetic_anomaly(const Species& s) {
-  if (s.kind != Kind::LEPTON && s.kind != Kind::HADRON)
+  const double q = s.charge;
+  if ((s.kind != Kind::LEPTON && s.kind != Kind::HADRON) || q == 0.0)
     return std::numeric_limits<double>::quiet_NaN();
-  return (g_spin(s) - 2.0) / 2.0;
+  const double g_q = s.gspin / q;
+  return (g_q - 2.0) / 2.0;
 }
 
 std::string nameof(const Species& s, bool basename) {
@@ -206,9 +215,14 @@ std::string nameof(const Species& s, bool basename) {
   if (!basename && s.kind == Kind::ATOM) {
     const int iso = static_cast<int>(s.iso);
     const int ch = static_cast<int>(s.charge);
-    std::string out;
-    if (iso != -1) out += "#" + std::to_string(iso);
-    out += s.name;
+    std::string out = s.name;
+    // The mass-number prefix belongs on the symbol: "anti-#3He", not
+    // "#3anti-He".
+    if (iso != -1) {
+      std::string symbol = s.name;
+      const bool anti_atom = strip_anti(symbol);
+      out = (anti_atom ? "anti-#" : "#") + std::to_string(iso) + symbol;
+    }
     if (ch > 0)
       out += "+" + std::to_string(ch);
     else if (ch < 0)
