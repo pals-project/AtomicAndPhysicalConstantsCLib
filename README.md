@@ -20,8 +20,9 @@ cmake --build build -j
 ctest --test-dir build --output-on-failure
 ```
 
-This builds `libapc.a` (static) and `libapc.dylib`/`.so` (shared, for FFI
-consumers such as Julia) plus the test executable.
+This builds the static library `libapc.a` (`apc.lib` with MSVC) plus the test
+executable. The API is C++, so it is meant to be linked into a C++ program;
+PALSParserCpp links it this way.
 
 ## Usage
 
