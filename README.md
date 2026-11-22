@@ -111,28 +111,6 @@ has no single spin, so `spin` is NaN. An element with no stable isotopes (Tc, Pm
 and Po onward apart from Th, Pa and U) has no standard atomic weight, so it
 needs a mass number: `"#209Po"` is accepted, `"Po"` throws.
 
-## Changes from v0.11.1
-
-Downstream code moving from the v0.11.1 tag sees these differences, all of them
-from APC v0.12.0:
-
-- `CLASSICAL_RADIUS_FACTOR` is `R_ELECTRON * M_ELECTRON` in eV·m. It was 1e6
-  too small before.
-- `G_DEUTERON`, `G_HELION`, `G_TRITON` and `G_NEUTRON` are renormalized to the
-  particle's own mass, and `gyromagnetic_anomaly` / `anomalous_moment_of` use
-  the charge-normalized formula above. The deuteron, triton and helion
-  anomalies change, and neutral particles now give NaN.
-- The triton's spin is 1/2 (it was 3/2). Atomic spins come from NUBASE2020
-  rather than `iso / 2`.
-- Bare symbols of elements with no stable isotopes (`"Po"`, `"Tc"`, …) throw.
-- Only a leading `"anti-"` marks an anti-atom. `"Anti-H"` and `"antiH"` throw.
-- Only `""`, `"null"`, `"Null"` and `"NULL"` give the null species.
-- Error messages match APC's, and `nameof` writes an anti-isotope as
-  `"anti-#3He"`.
-- `spinof` and `momentof` are new.
-- The CODATA 2022 constants derived in APC (`EV_PER_J`, `H_BAR`, `MU_*`, …)
-  pick up APC's recomputed values. They changed only in the last few digits.
-
 ## Known limitation
 
 APC accepts a mass number written with Unicode superscripts (`"⁴He"`, equivalent
