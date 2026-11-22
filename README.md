@@ -12,8 +12,8 @@ data tables directly from it rather than transcribing them by hand.
 
 ## Versioning
 
-The version mirrors the APC release it is generated from: `apc` **v0.11.1** is
-the C++ view of APC v0.11.1. Regenerating against a new APC release means
+The version mirrors the APC release it is generated from: `apc` **v0.12.0** is
+the C++ view of APC v0.12.0. Regenerating against a new APC release means
 bumping `project(... VERSION)` in `CMakeLists.txt` and tagging the commit to
 match. Downstream projects should pin that tag rather than track `main`, so that
 a push here cannot change their build without them asking for it.
@@ -38,9 +38,10 @@ tests/
 
 Only the **data** is generated. `codegen/generate.jl` loads the live APC module
 and emits its scalar constants and its subatomic/atomic species tables as
-`constexpr double`s and `std::unordered_map`s. Because Julia's shortest-round-trip
-float formatting and C++'s `strtod` obey the same IEEE rounding, every literal
-parses back to the identical bits.
+`constexpr double`s and `std::unordered_map`s, including the NUBASE2020 nuclear
+spin of every isotope (`NaN` where NUBASE assigns none). Because Julia's
+shortest-round-trip float formatting and C++'s `strtod` obey the same IEEE
+rounding, every literal parses back to the identical bits.
 
 The **logic** — the `Species(name)` parser (isotopes, ion charge states,
 anti-atoms) and the accessor functions (`massof`, `chargeof`,
@@ -104,21 +105,42 @@ double c    = apc::C_LIGHT;                      // a mirrored constant
 The three name→value helpers `mass_of`, `charge_of`, and `anomalous_moment_of`
 correspond to the PALS-standard expression functions of the same names.
 
-`anomalous_moment_of` is defined only for leptons and hadrons; for photons,
-atoms and the null species it returns NaN, as APC does.
+`anomalous_moment_of` is the charge-normalized anomaly `a = (g/q - 2)/2`, the
+one in the Thomas–BMT equation: the electron and positron both get
+`+0.00115965…`, and the doubly charged helion gets `-4.18415…`. It is defined
+only for charged leptons and hadrons; for neutral particles (neutron,
+anti-neutron, `pion0`), photons, atoms and the null species it returns NaN, as
+APC does. The g-factors are normalized to each particle's own mass, so
+`G_DEUTERON`, `G_HELION`, `G_TRITON` and `G_NEUTRON` differ from the NIST
+values, which are quoted against the nuclear magneton.
 
-## Known upstream issues
+An atom's spin is its nuclear ground-state spin from NUBASE2020 (`"#12C"` is 0,
+`"#3He"` is 1/2). A bare symbol such as `"He"` is the abundance average, which
+has no single spin, so `spin` is NaN. An element with no stable isotopes (Tc, Pm,
+and Po onward apart from Th, Pa and U) has no standard atomic weight, so it
+needs a mass number: `"#209Po"` is accepted, `"Po"` throws.
 
-`Species("triton")` and `Species("anti-triton")` report `spin = 1.5`. The triton
-is physically spin-1/2; 1.5 is what the atomic parser's `0.5 * iso` heuristic
-yields for A=3, and the value carried over when the triton became a subatomic
-species. Reported upstream in APC PR #294. The mirror reproduces it deliberately
-— it reflects APC, not a porting error.
+## Changes from v0.11.1
 
-The gyromagnetic anomaly is computed from the *absolute* g-factor, so species
-with a negative g-factor (helion, deuteron, neutron, …) get an anomaly that does
-not correspond to the usual signed definition. Again this mirrors APC's
-`gyromagnetic_anomaly`.
+Downstream code moving from the v0.11.1 tag sees these differences, all of them
+from APC v0.12.0:
+
+- `CLASSICAL_RADIUS_FACTOR` is `R_ELECTRON * M_ELECTRON` in eV·m. It was 1e6
+  too small before.
+- `G_DEUTERON`, `G_HELION`, `G_TRITON` and `G_NEUTRON` are renormalized to the
+  particle's own mass, and `gyromagnetic_anomaly` / `anomalous_moment_of` use
+  the charge-normalized formula above. The deuteron, triton and helion
+  anomalies change, and neutral particles now give NaN.
+- The triton's spin is 1/2 (it was 3/2). Atomic spins come from NUBASE2020
+  rather than `iso / 2`.
+- Bare symbols of elements with no stable isotopes (`"Po"`, `"Tc"`, …) throw.
+- Only a leading `"anti-"` marks an anti-atom. `"Anti-H"` and `"antiH"` throw.
+- Only `""`, `"null"`, `"Null"` and `"NULL"` give the null species.
+- Error messages match APC's, and `nameof` writes an anti-isotope as
+  `"anti-#3He"`.
+- `spinof` and `momentof` are new.
+- The CODATA 2022 constants derived in APC (`EV_PER_J`, `H_BAR`, `MU_*`, …)
+  pick up APC's recomputed values. They changed only in the last few digits.
 
 ## Known limitation
 

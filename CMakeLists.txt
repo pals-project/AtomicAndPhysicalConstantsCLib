@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 
 # The version tracks the AtomicAndPhysicalConstants.jl release this library
-# mirrors, so `apc` v0.11.1 is the C++ view of APC v0.11.1. Bump it whenever the
+# mirrors, so `apc` v0.12.0 is the C++ view of APC v0.12.0. Bump it whenever the
 # data is regenerated against a new APC release, and tag the commit to match:
 # downstream projects pin that tag.
-project(AtomicAndPhysicalConstantsCLib VERSION 0.11.1 LANGUAGES CXX)
+project(AtomicAndPhysicalConstantsCLib VERSION 0.12.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

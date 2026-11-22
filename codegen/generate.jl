@@ -36,10 +36,15 @@ const OUT_DIR = length(ARGS) >= 1 ? ARGS[1] :
 # Julia's `repr` gives the shortest decimal string that round-trips a Float64
 # under IEEE round-to-nearest; C++'s strtod uses the same rule, so the literal
 # parses back to the identical bits. Guarantee the result reads as a C++ double.
+# NaN (APC's marker for an undefined nuclear spin) and infinities have no C++
+# literal, so they are spelled with std::numeric_limits (needs <limits>).
 function cdouble(x::Real)
     x isa Integer && return string(x)
-    s = repr(Float64(x))
-    occursin(r"[.eEinInNaA]", s) || (s *= ".0")  # ensure a floating literal
+    y = Float64(x)
+    isnan(y) && return "std::numeric_limits<double>::quiet_NaN()"
+    isinf(y) && return (y > 0 ? "" : "-") * "std::numeric_limits<double>::infinity()"
+    s = repr(y)
+    occursin(r"[.eE]", s) || (s *= ".0")  # ensure a floating literal
     return s
 end
 
@@ -100,6 +105,7 @@ function emit_species(path)
         print(io, BANNER)
         println(io, "#pragma once")
         println(io)
+        println(io, "#include <limits>")
         println(io, "#include <string>")
         println(io, "#include <unordered_map>")
         println(io)
@@ -119,8 +125,14 @@ function emit_species(path)
         println(io)
         println(io, "struct AtomicData {")
         println(io, "  int Z;")
-        println(io, "  // mass number (-1 = natural-abundance average) -> mass in AMU")
+        println(io, "  // mass number (-1 = natural-abundance average) -> mass in AMU.")
+        println(io, "  // An element with no stable isotopes has no standard atomic weight;")
+        println(io, "  // its -1 entry is a 0.0 placeholder.")
         println(io, "  std::unordered_map<int, double> mass;")
+        println(io, "  // mass number -> NUBASE2020 ground-state nuclear spin in hbar. NaN")
+        println(io, "  // where NUBASE assigns no unambiguous spin. There is no -1 key: the")
+        println(io, "  // abundance average has no single spin.")
+        println(io, "  std::unordered_map<int, double> spin;")
         println(io, "};")
         println(io)
 
@@ -146,9 +158,12 @@ function emit_species(path)
         println(io, "  static const std::unordered_map<std::string, AtomicData> m = {")
         for sym in sort(collect(keys(A.ATOMIC_SPECIES)); by = s -> A.ATOMIC_SPECIES[s].Z)
             ad = A.ATOMIC_SPECIES[sym]
-            isos = sort(collect(keys(ad.mass)))
-            entries = join(("{$iso, $(cdouble(ad.mass[iso]))}" for iso in isos), ", ")
-            @printf(io, "    {%s, {%d, {%s}}},\n", cstr(sym), ad.Z, entries)
+            masses = join(("{$iso, $(cdouble(ad.mass[iso]))}"
+                           for iso in sort(collect(keys(ad.mass)))), ", ")
+            spins = join(("{$iso, $(cdouble(ad.spin[iso]))}"
+                          for iso in sort(collect(keys(ad.spin)))), ", ")
+            @printf(io, "    {%s, {%d,\n      {%s},\n      {%s}}},\n",
+                    cstr(sym), ad.Z, masses, spins)
         end
         println(io, "  };")
         println(io, "  return m;")
